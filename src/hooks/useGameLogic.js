@@ -56,29 +56,16 @@ export default function useGameLogic(GRID_SIZE, INITIAL_SPEED = 5) {
 
   const togglePause = () => setPaused((prev) => !prev);
 
-  useEffect(() => {
-    dirRef.current = direction;
-  }, [direction]);
-  useEffect(() => {
-    snakeRef.current = snake;
-  }, [snake]);
-  useEffect(() => {
-    const delay = 500 - (speedLevel - 1) * 50;
-    setSpeed(delay);
-  }, [speedLevel]);
-  useEffect(() => {
-    speedRef.current = speed;
-  }, [speed]);
-  useEffect(() => {
-    // Place new fruit only when snake eats food.
-  }, [food.x, food.y, gameOver, paused]);
+  useEffect(() => { dirRef.current = direction; }, [direction]);
+  useEffect(() => { snakeRef.current = snake; }, [snake]);
+  useEffect(() => { setSpeed(500 - (speedLevel - 1) * 50); }, [speedLevel]);
+  useEffect(() => { speedRef.current = speed; }, [speed]);
 
   const relocateFood = () => {
     let newX, newY, valid;
     do {
       newX = Math.floor(Math.random() * (GRID_SIZE - 2)) + 1;
       newY = Math.floor(Math.random() * (GRID_SIZE - 2)) + 1;
-      // Use the latest snakeRef to avoid spawning fruit on any part of the snake
       valid = !snakeRef.current.some(segment => segment.x === newX && segment.y === newY);
     } while (!valid);
 
@@ -93,46 +80,23 @@ export default function useGameLogic(GRID_SIZE, INITIAL_SPEED = 5) {
   const displayMessage = (msg) => {
     setMessage(msg);
     setShowMessage(true);
-    setTimeout(() => {
-      setShowMessage(false);
-    }, 2000);
+    setTimeout(() => { setShowMessage(false); }, 2000);
   };
 
   useEffect(() => {
     const handleKeyDown = (e) => {
       let updated = false;
       switch (e.key) {
-        case "ArrowUp":
-          if (dirRef.current.y !== 1) {
-            setDirection({ x: 0, y: -1 });
-            updated = true;
-          }
-          break;
-        case "ArrowDown":
-          if (dirRef.current.y !== -1) {
-            setDirection({ x: 0, y: 1 });
-            updated = true;
-          }
-          break;
-        case "ArrowLeft":
-          if (dirRef.current.x !== 1) {
-            setDirection({ x: -1, y: 0 });
-            updated = true;
-          }
-          break;
-        case "ArrowRight":
-          if (dirRef.current.x !== -1) {
-            setDirection({ x: 1, y: 0 });
-            updated = true;
-          }
-          break;
+        case "ArrowUp": if (dirRef.current.y !== 1) { setDirection({ x: 0, y: -1 }); updated = true; } break;
+        case "ArrowDown": if (dirRef.current.y !== -1) { setDirection({ x: 0, y: 1 }); updated = true; } break;
+        case "ArrowLeft": if (dirRef.current.x !== 1) { setDirection({ x: -1, y: 0 }); updated = true; } break;
+        case "ArrowRight": if (dirRef.current.x !== -1) { setDirection({ x: 1, y: 0 }); updated = true; } break;
         case " ":
           e.preventDefault();
           if (gameOver) resetGame();
           else togglePause();
           break;
-        default:
-          break;
+        default: break;
       }
       if (updated && !gameOver && !paused) moveSnakeImmediate();
     };
@@ -151,21 +115,16 @@ export default function useGameLogic(GRID_SIZE, INITIAL_SPEED = 5) {
 
   const moveSnakeInternal = (dir, currentSnake) => {
     const newSnake = [...currentSnake];
-    const head = {
-      x: newSnake[0].x + dir.x,
-      y: newSnake[0].y + dir.y,
-    };
+    const head = { x: newSnake[0].x + dir.x, y: newSnake[0].y + dir.y };
 
-    if (head.x <= 0 || head.y <= 0 || head.x >= GRID_SIZE - 1 || head.y >= GRID_SIZE - 1) {
+    // ✅ Fixed wall collision: allow last block, end game only if outside
+    if (head.x < 0 || head.y < 0 || head.x >= GRID_SIZE || head.y >= GRID_SIZE) {
       endGame();
       return;
     }
 
     const selfHit = newSnake.find(s => s.x === head.x && s.y === head.y);
-    if (selfHit) {
-      endGame();
-      return;
-    }
+    if (selfHit) { endGame(); return; }
 
     newSnake.unshift(head);
 
@@ -173,14 +132,10 @@ export default function useGameLogic(GRID_SIZE, INITIAL_SPEED = 5) {
       const newScore = score + 1;
       setScore(newScore);
 
-      if (MILESTONE_MESSAGES[newScore]) {
-        displayMessage(MILESTONE_MESSAGES[newScore]);
-      } else {
-        const randomMsg = FUNNY_MESSAGES[Math.floor(Math.random() * FUNNY_MESSAGES.length)];
-        displayMessage(randomMsg);
-      }
+      if (MILESTONE_MESSAGES[newScore]) displayMessage(MILESTONE_MESSAGES[newScore]);
+      else displayMessage(FUNNY_MESSAGES[Math.floor(Math.random() * FUNNY_MESSAGES.length)]);
 
-      relocateFood(); // Use the new function for valid fruit placement
+      relocateFood();
     } else {
       newSnake.pop();
     }
@@ -193,11 +148,7 @@ export default function useGameLogic(GRID_SIZE, INITIAL_SPEED = 5) {
     if (score > highScore) {
       setHighScore(score);
       displayMessage("🎉 NEW HIGH SCORE! 🎉");
-      try {
-        localStorage.setItem("snakeHighScore", score.toString());
-      } catch (e) {
-        console.error("Failed to save high score");
-      }
+      try { localStorage.setItem("snakeHighScore", score.toString()); } catch {}
     } else {
       displayMessage("💀 Oops! Better luck next time! 💀");
     }
@@ -212,7 +163,7 @@ export default function useGameLogic(GRID_SIZE, INITIAL_SPEED = 5) {
     setPaused(false);
     setSpeedLevel(INITIAL_SPEED);
     setShowMessage(false);
-    relocateFood(); // Ensure fruit placement doesn't overlap snake on reset
+    relocateFood();
   };
 
   return {
