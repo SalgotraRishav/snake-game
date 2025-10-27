@@ -1,0 +1,8 @@
+@keyframes pulse {
+  from {
+    filter: brightness(0.9);
+  }
+  to {
+    filter: brightness(1.2);
+  }
+}
